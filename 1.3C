@@ -1,0 +1,71 @@
+// Pin assignments
+const int motionSensorPin = 3;      // Digital pin connected to the motion sensor
+const int ultrasonicTriggerPin = 4; // Digital pin connected to the ultrasonic sensor trigger
+const int ultrasonicEchoPin = 5;    // Digital pin connected to the ultrasonic sensor echo
+const int ledPin = 13;              // LED pin used to indicate motion capture
+const int btn_pin = 2;               // Button pin for manual LED toggle
+
+// Variables
+uint8_t led_state = LOW;   // Current state of the LED
+bool pauseSensorReadings = false;  // Variable to control pause state
+
+// Ultrasonic sensor variables
+long duration;
+int distance;
+// Setup function, runs once when the microcontroller starts
+void setup() {
+  Serial.begin(9600);
+  pinMode(btn_pin, INPUT_PULLUP);
+  pinMode(motionSensorPin, INPUT);
+  pinMode(ultrasonicTriggerPin, OUTPUT);
+  pinMode(ultrasonicEchoPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(btn_pin), toggle, FALLING);
+}
+
+// Main loop function, runs repeatedly after setup
+void loop() {
+  if (!pauseSensorReadings) {
+    int motionValue = digitalRead(motionSensorPin);
+
+    if (motionValue == HIGH) {
+      Serial.println("Motion has been Detected!");
+      digitalWrite(ledPin, HIGH);
+    } else {
+      Serial.println("No Motion Detected.");
+      digitalWrite(ledPin, LOW);
+    }
+
+    digitalWrite(ultrasonicTriggerPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(ultrasonicTriggerPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(ultrasonicTriggerPin, LOW);
+    duration = pulseIn(ultrasonicEchoPin, HIGH);
+    distance = duration * 0.034 / 2;
+
+    Serial.print("Distance: ");
+    Serial.println(distance);
+
+    if (distance < 20) {
+      Serial.println("Distance is too low: " + String(distance));
+      digitalWrite(ledPin, HIGH);
+    } else {
+      Serial.println("Distance: " + String(distance));
+      digitalWrite(ledPin, LOW);
+    }
+  }
+
+  delay(1000); // Delay for 1 second
+}
+
+// Toggle function called when the button is pressed
+void toggle() {
+  led_state = !led_state;
+  digitalWrite(ledPin, led_state);
+  
+  //It sets the pause state to true for a few seconds
+  pauseSensorReadings = true;
+  delay(2000);  // Pause for 2 seconds
+  pauseSensorReadings = false;  // Resume sensor readings
+}
